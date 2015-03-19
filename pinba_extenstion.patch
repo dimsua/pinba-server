@@ -1,0 +1,29 @@
+--- pinba.c_orig	2014-12-15 11:44:38.000000000 +0300
++++ pinba.c	2015-03-19 14:26:24.668284093 +0300
+@@ -567,7 +567,7 @@
+ 		} else if (client->script_name) {
+ 			request->script_name = strdup(client->script_name);
+ 		} else {
+-			request->script_name = _pinba_fetch_global_var("SCRIPT_NAME", sizeof("SCRIPT_NAME") TSRMLS_CC);
++			request->script_name = _pinba_fetch_global_var("SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME") TSRMLS_CC);
+ 		}
+ 
+ 		tags = &client->tags;
+@@ -643,7 +643,7 @@
+ 		} else if (PINBA_G(script_name)) {
+ 			request->script_name = strdup(PINBA_G(script_name));
+ 		} else {
+-			request->script_name = _pinba_fetch_global_var("SCRIPT_NAME", sizeof("SCRIPT_NAME") TSRMLS_CC);
++			request->script_name = _pinba_fetch_global_var("SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME") TSRMLS_CC);
+ 		}
+ 
+ 		tags = &PINBA_G(tags);
+@@ -2504,7 +2504,7 @@
+ 	zend_is_auto_global("_SERVER", sizeof("_SERVER") - 1 TSRMLS_CC);
+ #endif
+ 
+-	if (PG(http_globals)[TRACK_VARS_SERVER] && zend_hash_find(HASH_OF(PG(http_globals)[TRACK_VARS_SERVER]), "SCRIPT_NAME", sizeof("SCRIPT_NAME"), (void **) &tmp) != FAILURE && Z_TYPE_PP(tmp) == IS_STRING && Z_STRLEN_PP(tmp) > 0) {
++	if (PG(http_globals)[TRACK_VARS_SERVER] && zend_hash_find(HASH_OF(PG(http_globals)[TRACK_VARS_SERVER]), "SCRIPT_FILENAME", sizeof("SCRIPT_FILENAME"), (void **) &tmp) != FAILURE && Z_TYPE_PP(tmp) == IS_STRING && Z_STRLEN_PP(tmp) > 0) {
+ 		PINBA_G(script_name) = estrndup(Z_STRVAL_PP(tmp), Z_STRLEN_PP(tmp));
+ 	}
+ 

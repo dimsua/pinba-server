@@ -1,5 +1,6 @@
 # pinba-server
 Alternative server for Pinba (https://github.com/tony2001/pinba_extension)
+Forked from (https://github.com/olegfedoseev/pinba-server)
 
 # How to run
 ```
@@ -7,14 +8,13 @@ Alternative server for Pinba (https://github.com/tony2001/pinba_extension)
 ./collector --in=0.0.0.0:30002 # pinba should write to this port \
   --out=127.0.0.1:5003
   
-# Decode protobuf packets
-./decoder --in=127.0.0.1:5003 # collector's --out \
-  --out=tcp://127.0.0.1:5005 # it's ZeroMQ PUB Socket
-
-# For test, if we don't want to write to OpenTSDB
-nc -l -p 4242 
-
-# "buffer" and aggregate metrics for 10 sec (make it adjustable?) and write metrics to OpenTSDB telnet interface
-./aggregator --in=tcp://127.0.0.1:5005 # decoder's --out\
-  --out=127.0.0.1:4242
+# Decode protobuf packets and write data to MySql
+./decoder --in=127.0.0.1:5003
 ```
+
+We wont install mysql plugin for collecting statistics and modificate pinba-server for our needs.
+CPU stat multiply by a 1000000 for easy collecting cpu stat.
+First need patch pinba-extension for logging SCRIPT_FILENAME instead of SCRIPT_NAME because we need username, who run scripts.
+Finally we have agregate cpu usage per hour and script
+
+http://scr.pics/Monosnap_2015-03-19_13-32-50.png
