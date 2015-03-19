@@ -17,4 +17,4 @@ CPU stat multiply by a 1000000 for easy collecting cpu stat.
 First need patch pinba-extension for logging SCRIPT_FILENAME instead of SCRIPT_NAME because we need username, who run scripts.
 Finally we have agregate cpu usage per hour and script
 
-http://scr.pics/Monosnap_2015-03-19_13-32-50.png
+https://raw.githubusercontent.com/dimsua/pinba-server/master/pinba-server.png
