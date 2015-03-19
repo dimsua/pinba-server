@@ -114,7 +114,7 @@ func (l *Listener) Start() {
 		ts, data, err := l.conn.Read()
 		if err != nil {
 			log.Printf("[Listener] Failed to read from socket: %v", err)
-			time.Sleep(5 * time.Second) // wait 5 sec till next try
+			time.Sleep(1 * time.Second) // wait 1 sec till next try
 			continue
 		}
 

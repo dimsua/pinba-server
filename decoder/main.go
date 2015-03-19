@@ -2,16 +2,17 @@ package main
 
 import (
 	"flag"
-	zmq "github.com/pebbe/zmq4"
 	"log"
 	"runtime"
 	"strings"
 	"time"
+	"strconv"
+        "database/sql"
+        _ "github.com/go-sql-driver/mysql"
 )
 
 var (
 	in_addr  = flag.String("in", "", "incoming socket")
-	out_addr = flag.String("out", "", "outcoming socket")
 	cpu      = flag.Int("cpu", 1, "how much cores to use")
 )
 
@@ -36,21 +37,20 @@ func worker(source <-chan RawData, decoded chan<- string, timers chan<- time.Dur
 func main() {
 	flag.Parse()
 
-	log.Printf("Pinba decoder listening on %s and sending to %s\n", *in_addr, *out_addr)
 	log.Printf("Using %d/%d CPU\n", *cpu, runtime.NumCPU())
 	runtime.GOMAXPROCS(*cpu)
 
 	listener := NewListener(in_addr)
-
-	publisher, err := zmq.NewSocket(zmq.PUB)
-	if err != nil {
-		log.Fatalf("[Decoder] Failed to create socket: %v", err)
-	}
-	defer publisher.Close()
-	if err := publisher.Bind(*out_addr); err != nil {
-		log.Fatalf("[Decoder] Failed to bind to %v: %v", *out_addr, err)
-	}
-
+        db, err := sql.Open("mysql", "username:password@/database")
+            if err != nil {
+                log.Printf("[Decoder] Cannot connct to MySQL: %v", err)
+            }
+	defer db.Close()
+        stmtIns, err := db.Prepare("INSERT INTO phpload VALUES( ?, ?, ?, ?, ? ) ON DUPLICATE KEY UPDATE cpu = cpu + VALUES(cpu)")
+         if err != nil {
+            panic(err.Error()) // proper error handling instead of panic in your app
+        }
+	defer stmtIns.Close()
 	var decoding_time time.Duration
 	var decoded_count, sent_count int64
 	decoded := make(chan string, 10000)
@@ -73,14 +73,59 @@ func main() {
 
 		case metric := <-decoded:
 			sent_count += 1
-			// request 1421892675 0.000000 1 0.000000 host=frontend2 server=www.kem-rabota.ru script=/favicon.ico status=200
-			data := strings.SplitAfterN(metric, " ", 2)
-			if _, err := publisher.Send(strings.TrimSpace(data[0]), zmq.SNDMORE); err != nil {
-				log.Printf("[Decoder] Failed to SendMessage: %v", err)
+			data := strings.Split(metric, " ")
+			unixtime := data[1]
+			curtime, _ := strconv.Atoi(unixtime)
+			cpu := data[4]
+			scriptname := data[6]
+			date:= time.Unix(int64(curtime), 0).Format("2006-1-2:15:04:05")
+			tempdate := strings.Split(date, ":")
+			currentdate := tempdate[0]
+			currenthour := tempdate[1]
+			//we have 3 different hosting-environment:
+			//1. own design
+			//2. ISP-hosting
+			//3. Cpanel-hosting
+			//All users in /home, or /var/www - for ISP-hosting
+			//p0 - its our system-user and we exclude him from global-stat
+			//this is my first go-coding and my modification like a shit:)
+			if strings.HasPrefix(scriptname, "/home/p") && !strings.Contains(scriptname, "/public_html/") {
+				tempscriptname := strings.Split(scriptname, "/")
+				tempuser := tempscriptname[2]
+				user := strings.TrimLeft(tempuser, "p")
+				newscriptname := strings.TrimLeft(scriptname, "/home/")
+				newscriptname2 := strings.TrimLeft(newscriptname, tempuser)
+				newscriptname3 := strings.TrimLeft(newscriptname2, "www/")
+				if strings.HasPrefix(scriptname, "/home/p0/") {
+					log.Printf("[Decoder] p0 detected, doesnt send p0 to database")
+				} else {
+					stmtIns.Exec(currentdate, currenthour, user, newscriptname3, cpu)
+				}
+			} else if strings.HasPrefix(scriptname, "/var/www/p") {
+                tempscriptname := strings.Split(scriptname, "/")
+                tempuser := tempscriptname[3]
+                user := strings.TrimLeft(tempuser, "p")
+                newscriptname := strings.TrimLeft(scriptname, "/var/www/")
+                newscriptname2 := strings.TrimLeft(newscriptname, tempuser)
+				newscriptname3 := strings.TrimLeft(newscriptname2, "data/")
+                if strings.HasPrefix(scriptname, "/var/www/p0/") {
+                      log.Printf("[Decoder] p0 detected, doesnt send p0 to database")
+                } else {
+                      stmtIns.Exec(currentdate, currenthour, user, newscriptname3, cpu)
+                }
+			} else if strings.HasPrefix(scriptname, "/home/p") && strings.Contains(scriptname, "/public_html/") {
+                tempscriptname := strings.Split(scriptname, "/")
+                tempuser := tempscriptname[3]
+                user := strings.TrimLeft(tempuser, "p")
+                newscriptname := strings.TrimLeft(scriptname, "/home/")
+                newscriptname2 := strings.TrimLeft(newscriptname, tempuser)
+                if strings.HasPrefix(scriptname, "/home/p0/") {
+                       log.Printf("[Decoder] p0 detected, doesnt send p0 to database")
+                } else {
+                       stmtIns.Exec(currentdate, currenthour, user, newscriptname2, cpu)
+                }
 			}
-			if _, err := publisher.Send(data[1], 0); err != nil {
-				log.Printf("[Decoder] Failed to SendMessage: %v", err)
-			}
+			//log.Printf("[Decoder] time: %v cpu: %v script: %v", currenthour, cpu, scriptname)
 
 		case t := <-timers:
 			decoding_time += t

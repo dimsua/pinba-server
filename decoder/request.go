@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"code.google.com/p/goprotobuf/proto"
 	"fmt"
+	"math"
 	"strconv"
 )
 
@@ -64,7 +65,9 @@ func RawDecode(data []byte) (request *Request, err error) {
 
 	return request, nil
 }
-
+func round(f float64) int {
+	return int(f + math.Copysign(0.5, f))
+}
 func Decode(ts int32, data []byte) (metrics []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -131,7 +134,10 @@ func Decode(ts int32, data []byte) (metrics []string, err error) {
 		metrics[idx] = timer.String()
 		offset += int(request.TimerTagCount[idx])
 	}
-	metrics[len(metrics)-1] = fmt.Sprintf("request %d %f %d %f %s", ts,
-		*request.RequestTime, 1, *request.RuUtime+*request.RuStime, tags.String())
+	var totaltime float64 = 0.0
+	totaltime = float64((*request.RuUtime+*request.RuStime)*1000000)
+	var roundtotaltime = round(totaltime)
+	metrics[len(metrics)-1] = fmt.Sprintf("request %d %f %d %d %f %s", ts,
+		*request.RequestTime, 1, roundtotaltime, *request.RuUtime+*request.RuStime, *request.ScriptName)
 	return metrics, nil
 }
