@@ -2,7 +2,7 @@
 --
 -- Host: localhost    Database: stat
 -- ------------------------------------------------------
--- Server version	5.5.42-37.1-log
+-- Server version       5.5.42-37.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -28,7 +28,9 @@ CREATE TABLE `phpload` (
   `order_id` int(11) NOT NULL,
   `file` varchar(200) NOT NULL DEFAULT '',
   `cpu` bigint(20) NOT NULL,
-  UNIQUE KEY `uniq` (`date`,`hour`,`file`)
+  `cnt` int(11) NOT NULL,
+  UNIQUE KEY `uniq` (`order_id`,`date`,`hour`,`file`),
+  KEY `idx1` (`date`,`hour`,`order_id`,`file`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -41,4 +43,4 @@ CREATE TABLE `phpload` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-03-19 14:05:12
+-- Dump completed on 2015-03-20 12:41:06

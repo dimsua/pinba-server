@@ -46,7 +46,7 @@ func main() {
                 log.Printf("[Decoder] Cannot connct to MySQL: %v", err)
             }
 	defer db.Close()
-        stmtIns, err := db.Prepare("INSERT INTO phpload VALUES( ?, ?, ?, ?, ? ) ON DUPLICATE KEY UPDATE cpu = cpu + VALUES(cpu)")
+        stmtIns, err := db.Prepare("INSERT INTO phpload VALUES( ?, ?, ?, ?, ?, '1' ) ON DUPLICATE KEY UPDATE cpu = cpu + VALUES(cpu), cnt = cnt + VALUES(cnt)")
          if err != nil {
             panic(err.Error()) // proper error handling instead of panic in your app
         }
